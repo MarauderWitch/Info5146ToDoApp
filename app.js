@@ -19,3 +19,5 @@ taskList.addEventListener('click', (e) => {
         e.target.remove();
     }
 });
+//Error Logging and Debugging
+window.addEventListener('error', function (event) { console.error('Error occurred: ', event.message); });
