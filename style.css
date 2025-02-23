@@ -7,7 +7,7 @@ body {
 }
 
 h1 {
-    background-color: #0078D7;
+    background-color: #A02C4F;
     color: white;
     padding: 10px;
 }
@@ -39,7 +39,7 @@ button {
 }
 
 button:hover {
-    background-color: #005bb5;
+    background-color: #7d213d;
 }
 
 ul {
