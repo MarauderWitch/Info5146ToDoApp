@@ -6,7 +6,7 @@ on:
             - main
 
 jobs:
-    build-and-deploy:
+    build:
         runs-on: ubuntu-latest
 
         steps:
@@ -30,3 +30,13 @@ jobs:
               with:
                 github_token: ${{ secrets.GITHUB_TOKEN }}
                 publish_dir: ./
+
+            - name: Run linting
+              run: npm run lint
+
+            - name: Upload logs
+              run: |
+                mkdir logs
+                echo "Logs uploaded on $(date)" > logs/summary.log
+                tar -czf logs.tar.gz logs
+              continue-on-error: true
