@@ -1,7 +1,7 @@
 // Import Firebase modules
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from 'firebase/firestore';
-//deleteDoc
+//deleteDocs
 import log from "loglevel";
 
 // Set logging level (options: "trace", "debug", "info", "warn", "error")
@@ -63,6 +63,8 @@ async function renderTasks() {
       const taskItem = document.createElement("li");
       taskItem.id = task.id;
       taskItem.textContent = task.data().text;
+      taskItem.tabIndex = 0; // ✅ Make tasks keyboard navigable
+
       taskList.appendChild(taskItem);
     }
   });
@@ -94,22 +96,27 @@ addTaskBtn.addEventListener('click', async () => {
     taskInput.value = "";
   } else {
     log.warn("User tried to add an empty task");
+    alert("Please enter a task!"); // ✅ Show an alert for empty input
   }
 });
 
-// Mark Task as Completed or Delete on Click
-taskList.addEventListener('click', async (e) => {
-  if (e.target.tagName === 'LI') {
-    const taskId = e.target.id;
-    if (taskId) {
-      try {
-        log.info(`Marking task as completed: ${taskId}`);
-        await updateDoc(doc(db, "todos", taskId), { completed: true });
-        log.info(`Task ${taskId} marked as completed`);
-        renderTasks(); // Refresh the UI
-      } catch (error) {
-        log.error("Error updating task:", error);
-      }
+// ✅ Add Task on Enter Key Press
+taskInput.addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    addTaskBtn.click(); // Simulate button click
+  }
+});
+
+// ✅ Mark Task as Completed on Enter Key Press
+taskList.addEventListener("keypress", async function(e) {
+  if (e.target.tagName === 'LI' && e.key === "Enter") {
+    try {
+      log.info(`Marking task as completed: ${e.target.id}`);
+      await updateDoc(doc(db, "todos", e.target.id), { completed: true });
+      log.info(`Task ${e.target.id} marked as completed`);
+      renderTasks(); // Refresh the UI
+    } catch (error) {
+      log.error("Error updating task:", error);
     }
   }
 });
@@ -124,7 +131,7 @@ const sw = new URL('service-worker.js', import.meta.url);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(sw.href, { scope: '/Info5146ToDoApp/' })
     .then(() => log.info('Service Worker Registered successfully'))
-    //then(_)
+    //then(_
     .catch(err => log.error('Service Worker Error:', err));
 }
 
