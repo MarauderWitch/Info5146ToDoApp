@@ -1,11 +1,10 @@
 // Import Firebase modules
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from 'firebase/firestore';
-//deleteDocs
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
 import log from "loglevel";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Set logging level (options: "trace", "debug", "info", "warn", "error")
+// Set logging level
 log.setLevel("info");
 
 // Log application start
@@ -29,116 +28,32 @@ const db = getFirestore(app);
 const taskInput = document.getElementById('taskInput');
 const addTaskBtn = document.getElementById('addTaskBtn');
 const taskList = document.getElementById('taskList');
+const aiButton = document.getElementById('send-btn');
+const aiInput = document.getElementById('chat-input');
+const chatHistory = document.getElementById('chat-history');
 
-// Function to sanitize input (Prevents XSS attacks)
-function sanitizeInput(input) {
-  const div = document.createElement("div");
-  div.textContent = input; // Escapes any HTML tags
-  return div.innerHTML;
-}
+let model;
 
-// Function to fetch tasks from Firestore
-async function getTasksFromFirestore() {
-  try {
-    log.info("Fetching tasks from Firestore...");
-    const data = await getDocs(collection(db, "todos"));
-    let userData = [];
-    data.forEach((doc) => {
-      userData.push(doc);
-    });
-    log.info(`Fetched ${userData.length} tasks`);
-    return userData;
-  } catch (error) {
-    log.error("Error fetching tasks:", error);
-    return [];
-  }
-}
-
-// Function to render tasks in the UI
-async function renderTasks() {
-  var tasks = await getTasksFromFirestore();
-  taskList.innerHTML = ""; // Clear existing tasks
-
-  tasks.forEach((task) => {
-    if (!task.data().completed) {
-      const taskItem = document.createElement("li");
-      taskItem.id = task.id;
-      taskItem.textContent = task.data().text;
-      taskItem.tabIndex = 0; // ✅ Make tasks keyboard navigable
-
-      taskList.appendChild(taskItem);
-    }
-  });
-  log.info("Tasks rendered successfully");
-}
-
-// Function to add a task to Firestore
-async function addTaskToFirestore(taskText) {
-  const sanitizedTaskText = sanitizeInput(taskText); // Sanitize user input
-  try {
-    log.info(`Adding task: ${sanitizedTaskText}`);
-    await addDoc(collection(db, "todos"), {
-      text: sanitizedTaskText,
-      completed: false
-    });
-    log.info("Task added successfully");
-    renderTasks(); // Refresh the task list after adding
-  } catch (error) {
-    log.error("Error adding task:", error);
-  }
-}
-
-//Call in the event listener for page load
+// Get API Key for Chatbot
 async function getApiKey() {
   let snapshot = await getDoc(doc(db, "apikey", "googlegenai"));
-  apiKey =  snapshot.data().key;
-  genAI = new GoogleGenerativeAI(apiKey);
+  let apiKey = snapshot.data().key;
+  let genAI = new GoogleGenerativeAI(apiKey);
   model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 }
 
+// Chatbot API Call
 async function askChatBot(request) {
-  return await model.generateContent(request);
-}
-
-function ruleChatBot(request) {
-  if (request.startsWith("add task")) {
-    let task = request.replace("add task", "").trim();
-    if (task) {
-        addTask(task);
-        appendMessage('Task ' + task + ' added!');
-    } else {
-        appendMessage("Please specify a task to add.");
-    }
-    return true;
-  } else if (request.startsWith("complete")) {
-      let taskName = request.replace("complete", "").trim();
-      if (taskName) {
-          if(removeFromTaskName(taskName)) {
-            appendMessage('Task ' + taskName + ' marked as complete.');
-          } else {
-            appendMessage("Task not found!");
-          }
-          
-      } else {
-          appendMessage("Please specify a task to complete.");
-      }
-      return true;
+  try {
+    let response = await model.generateContent(request);
+    let textResponse = response?.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't understand.";
+    appendMessage(`Bot: ${textResponse}`);
+  } catch (error) {
+    appendMessage("Error fetching chatbot response.");
   }
-
-  return false;
 }
 
-aiButton.addEventListener('click', async () => {
-  let prompt = aiInput.value.trim().toLowerCase();
-  if(prompt) {
-    if(!ruleChatBot(prompt)){
-      askChatBot(prompt);
-    }
-  } else {
-    appendMessage("Please enter a prompt")
-  }  
-});
-
+// Function to add a message to the chat history
 function appendMessage(message) {
   let history = document.createElement("div");
   history.textContent = message;
@@ -147,65 +62,90 @@ function appendMessage(message) {
   aiInput.value = "";
 }
 
-function removeFromTaskName(task) {
-  let ele = document.getElementsByName(task);
-  if(ele.length == 0){
-    return false;
-  }
-  ele.forEach(e => {
-    removeTask(e.id);
-    removeVisualTask(e.id);
-  })
-  return true;
+// Function to fetch tasks from Firestore
+async function getTasksFromFirestore() {
+  const data = await getDocs(collection(db, "todos"));
+  let tasks = [];
+  data.forEach((doc) => tasks.push(doc));
+  return tasks;
 }
 
-// Add Task Button Event Listener
-addTaskBtn.addEventListener('click', async () => {
-  const taskText = sanitizeInput(taskInput.value.trim()); // Sanitize before saving
-  if (taskText) {
-    log.info(`User clicked "Add Task" with input: ${taskText}`);
-    await addTaskToFirestore(taskText);
-    taskInput.value = "";
-  } else {
-    log.warn("User tried to add an empty task");
-    alert("Please enter a task!"); // ✅ Show an alert for empty input
-  }
-});
+// Function to render tasks
+async function renderTasks() {
+  let tasks = await getTasksFromFirestore();
+  taskList.innerHTML = "";
+  tasks.forEach((task) => {
+    if (!task.data().completed) {
+      const taskItem = document.createElement("li");
+      taskItem.id = task.id;
+      taskItem.textContent = task.data().text;
+      taskItem.tabIndex = 0;
+      taskList.appendChild(taskItem);
+    }
+  });
+}
 
-// ✅ Add Task on Enter Key Press
-taskInput.addEventListener("keypress", function(event) {
-  if (event.key === "Enter") {
-    addTaskBtn.click(); // Simulate button click
-  }
-});
+// Add task to Firestore
+async function addTaskToFirestore(taskText) {
+  if (!taskText) return;
+  await addDoc(collection(db, "todos"), { text: taskText, completed: false });
+  renderTasks();
+}
 
-// ✅ Mark Task as Completed on Enter Key Press
-taskList.addEventListener("keypress", async function(e) {
-  if (e.target.tagName === 'LI' && e.key === "Enter") {
-    try {
-      log.info(`Marking task as completed: ${e.target.id}`);
-      await updateDoc(doc(db, "todos", e.target.id), { completed: true });
-      log.info(`Task ${e.target.id} marked as completed`);
-      renderTasks(); // Refresh the UI
-    } catch (error) {
-      log.error("Error updating task:", error);
+// Remove Task by Name
+async function removeFromTaskName(taskName) {
+  let tasks = await getTasksFromFirestore();
+  let removed = false;
+  for (let task of tasks) {
+    if (task.data().text.toLowerCase() === taskName.toLowerCase()) {
+      await updateDoc(doc(db, "todos", task.id), { completed: true });
+      removed = true;
     }
   }
-});
-
-// Error Logging
-window.addEventListener('error', function (event) { 
-  log.error('Global Error occurred:', event.message); 
-});
-
-// Service Worker Registration
-const sw = new URL('service-worker.js', import.meta.url);
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register(sw.href, { scope: '/Info5146ToDoApp/' })
-    .then(() => log.info('Service Worker Registered successfully'))
-    //then(_
-    .catch(err => log.error('Service Worker Error:', err));
+  return removed;
 }
 
-// Load tasks on page load
-window.addEventListener('load', renderTasks);
+// Chatbot Command Processing
+function ruleChatBot(request) {
+  if (request.startsWith("add task")) {
+    let task = request.replace("add task", "").trim();
+    if (task) {
+      addTaskToFirestore(task);
+      appendMessage(`Task "${task}" added!`);
+    } else {
+      appendMessage("Please specify a task to add.");
+    }
+    return true;
+  } else if (request.startsWith("complete")) {
+    let taskName = request.replace("complete", "").trim();
+    if (taskName) {
+      if (removeFromTaskName(taskName)) {
+        appendMessage(`Task "${taskName}" marked as complete.`);
+      } else {
+        appendMessage("Task not found!");
+      }
+    } else {
+      appendMessage("Please specify a task to complete.");
+    }
+    return true;
+  }
+  return false;
+}
+
+// Chatbot Event Listener
+aiButton.addEventListener('click', async () => {
+  let prompt = aiInput.value.trim().toLowerCase();
+  if (prompt) {
+    if (!ruleChatBot(prompt)) {
+      askChatBot(prompt);
+    }
+  } else {
+    appendMessage("Please enter a prompt");
+  }
+});
+
+// Load tasks and API Key on page load
+window.addEventListener('load', async () => {
+  await getApiKey();
+  renderTasks();
+});
