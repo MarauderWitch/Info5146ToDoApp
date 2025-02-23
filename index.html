@@ -19,11 +19,6 @@
             <button id="addTaskBtn">Add Task</button>
             <ul id="taskList"></ul>
         </div>
-        <div id="chatbot-container">
-            <div id="chat-history"></div>
-            <input type="text" id="chat-input">
-            <button id="send-btn">Send</button>
-        </div>
     </main>
         <script type="module" src="app.js"></script>
         <script>
@@ -33,6 +28,11 @@
                     .catch(err => console.error('Service Worker Error:', err));
             }
         </script>
+        <div id="chatbot-container">
+            <div id="chat-history"></div>
+            <input type="text" id="chat-input">
+            <button id="send-btn">Send</button>
+        </div>
         <!-- Google tag (gtag.js) -->
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-0TTDV3YQER"></script>
         <script>
