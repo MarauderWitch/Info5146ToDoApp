@@ -1,6 +1,6 @@
-import { initializeApp } from "./firebase-app.js";
-import { getFirestore } from "./firebase-firestore.js";
-import { getAuth } from "./firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCj8Gby9nV5WLOfRlMDKRcW0isXQ5HACBU",
@@ -9,7 +9,7 @@ const firebaseConfig = {
     storageBucket: "info5146todoapp.firebasestorage.app",
     messagingSenderId: "395951409528",
     appId: "1:395951409528:web:a022f4d7ca7bd6cb1aa08d"
-  };
+};
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
