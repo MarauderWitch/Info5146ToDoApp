@@ -9,18 +9,55 @@ log.setLevel("info");
 // Log application start
 log.info("Application started");
 
-const taskInput = document.getElementById('taskInput');
-const addTaskBtn = document.getElementById('addTaskBtn');
-const taskList = document.getElementById('taskList');
-const aiButton = document.getElementById('send-btn');
-const aiInput = document.getElementById('chat-input');
-const chatHistory = document.getElementById('chat-history');
-const email = JSON.parse(localStorage.getItem("email"));
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded, attaching event listeners...");
 
-// Function to sanitize input (Prevents XSS attacks)
+    const taskInput = document.getElementById('taskInput');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskList = document.getElementById('taskList');
+    const aiButton = document.getElementById('send-btn');
+    const aiInput = document.getElementById('chat-input');
+    const chatHistory = document.getElementById('chat-history');
+    const signOutBttn = document.getElementById("signOutBttn");
+
+    if (!taskInput || !addTaskBtn || !taskList || !aiButton || !aiInput || !chatHistory || !signOutBttn) {
+        console.error("One or more elements not found! Check your HTML.");
+        return;
+    }
+
+    // ✅ Now add event listeners safely
+    addTaskBtn.addEventListener('click', async () => {
+        console.log("Add Task button clicked!");
+        const taskText = taskInput.value.trim();
+        if (taskText) {
+            console.log(`Adding task: ${taskText}`);
+            taskInput.value = "";
+        } else {
+            alert("Please enter a task!");
+        }
+    });
+
+    aiButton.addEventListener('click', async () => {
+        let prompt = aiInput.value.trim().toLowerCase();
+        if (prompt) {
+            console.log(`Chatbot received: ${prompt}`);
+        } else {
+            appendMessage("Please enter a prompt");
+        }
+    });
+
+    signOutBttn.addEventListener("click", function () {
+        console.log("User signed out.");
+        localStorage.removeItem("email");
+        window.location.href = "index.html";
+    });
+});
+
+
+// Function to sanitize input
 function sanitizeInput(input) {
     const div = document.createElement("div");
-    div.textContent = input; // Escapes any HTML tags
+    div.textContent = input;
     return div.innerHTML;
 }
 
