@@ -601,11 +601,6 @@ var _auth = require("firebase/auth");
 const provider = new (0, _auth.GoogleAuthProvider)();
 const signInBttn = document.getElementById('signIn');
 const sw = new URL(require("9f41ac59bb29f729"));
-const email = localStorage.getItem("email") ? JSON.parse(localStorage.getItem("email")) : null;
-if (!email) {
-    console.error("No email found in localStorage, redirecting to login.");
-    window.location.href = "index.html"; // Redirect user to login if no email is stored
-}
 if ('serviceWorker' in navigator) {
     const s = navigator.serviceWorker;
     s.register(sw.href, {
