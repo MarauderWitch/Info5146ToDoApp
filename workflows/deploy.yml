@@ -24,6 +24,9 @@ jobs:
                 if [ -f package.json ] && [ -f build/index.html ]; then
                   npm run build
                 fi
+
+            - name: Copy index.html to Root for GitHub Pages
+              run: cp assets/html/index.html ./index.html
                 
             - name: Deploy to GitHub Pages
               uses: peaceiris/actions-gh-pages@v3
