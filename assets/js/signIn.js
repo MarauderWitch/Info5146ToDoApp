@@ -7,6 +7,13 @@ const signInBttn = document.getElementById('signIn');
 
 const sw = new URL('service-worker.js', import.meta.url);
 
+const email = localStorage.getItem("email") ? JSON.parse(localStorage.getItem("email")) : null;
+
+if (!email) {
+    console.error("No email found in localStorage, redirecting to login.");
+    window.location.href = "index.html"; // Redirect user to login if no email is stored
+}
+
 if ('serviceWorker' in navigator) {
     const s = navigator.serviceWorker;
     s.register(sw.href, {

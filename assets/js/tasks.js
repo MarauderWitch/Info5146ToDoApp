@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("Add Task button clicked!");
         const taskText = taskInput.value.trim();
         if (taskText) {
-            console.log(`Adding task: ${taskText}`);
+            console.log("Adding task: ${taskText}");
             taskInput.value = "";
         } else {
             alert("Please enter a task!");
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
     aiButton.addEventListener('click', async () => {
         let prompt = aiInput.value.trim().toLowerCase();
         if (prompt) {
-            console.log(`Chatbot received: ${prompt}`);
+            console.log("Chatbot received: ${prompt}");
         } else {
             appendMessage("Please enter a prompt");
         }
@@ -66,20 +66,27 @@ if(!email){
 }
 
 async function renderTasks() {
-    var tasks = await getTasksFromFirestore();
-    taskList.innerHTML = ""; // Clear existing tasks
-  
-    tasks.forEach((task) => {
-      if (!task.data().completed) {
-        const taskItem = document.createElement("li");
-        taskItem.id = task.id;
-        taskItem.textContent = task.data().text;
-        taskItem.tabIndex = 0; // ✅ Make tasks keyboard navigable
-  
-        taskList.appendChild(taskItem);
-      }
+    console.log("Fetching tasks from Firestore...");
+
+    const querySnapshot = await getDocs(collection(db, "todos"));
+    taskList.innerHTML = ""; // ✅ Clear existing tasks before rendering
+
+    querySnapshot.forEach((doc) => {
+        const taskData = doc.data();
+
+        console.log("Rendering task: ${doc.id} - ${taskData.text}"); // ✅ Debug log
+
+        if (!taskData.completed) {
+            const taskItem = document.createElement("li");
+            taskItem.id = doc.id;
+            taskItem.textContent = taskData.text;
+            taskItem.tabIndex = 0; // ✅ Make tasks keyboard navigable
+
+            taskList.appendChild(taskItem);
+        }
     });
-    log.info("Tasks rendered successfully");
+
+    console.log("Rendered ${querySnapshot.size} tasks."); // ✅ Debugging info
 }
 
 async function addTaskToFirestore(taskText) {
@@ -171,7 +178,7 @@ async function getApiKey() {
   addTaskBtn.addEventListener('click', async () => {
     const taskText = sanitizeInput(taskInput.value.trim()); // Sanitize before saving
     if (taskText) {
-      log.info(`User clicked "Add Task" with input: ${taskText}`);
+      log.info("User clicked 'Add Task' with input: ${taskText}");
       await addTaskToFirestore(taskText);
       taskInput.value = "";
     } else {
@@ -191,9 +198,9 @@ async function getApiKey() {
   taskList.addEventListener("keypress", async function(e) {
     if (e.target.tagName === 'LI' && e.key === "Enter") {
       try {
-        log.info(`Marking task as completed: ${e.target.id}`);
+        log.info("Marking task as completed: ${e.target.id}");
         await updateDoc(doc(db, "todos", e.target.id), { completed: true });
-        log.info(`Task ${e.target.id} marked as completed`);
+        log.info("Task ${e.target.id} marked as completed");
         renderTasks(); // Refresh the UI
       } catch (error) {
         log.error("Error updating task:", error);
