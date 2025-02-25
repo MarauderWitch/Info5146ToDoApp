@@ -598,7 +598,7 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 },{}],"azFBe":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _firestore = require("firebase/firestore");
-var _firebaseJs = require("../js/firebase.js");
+var _firebaseJs = require("./firebase.js");
 var _loglevel = require("loglevel");
 var _loglevelDefault = parcelHelpers.interopDefault(_loglevel);
 var _generativeAi = require("@google/generative-ai");
@@ -798,7 +798,7 @@ window.addEventListener('error', function(event) {
     (0, _loglevelDefault.default).error("\u274C Global Error occurred:", event.message);
 });
 
-},{"firebase/firestore":"8A4BC","loglevel":"7kRFs","@google/generative-ai":"gKJrW","6d4f19e974d79928":"4b8AD","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../js/firebase.js":"38sjH"}],"7kRFs":[function(require,module,exports,__globalThis) {
+},{"firebase/firestore":"8A4BC","loglevel":"7kRFs","@google/generative-ai":"gKJrW","6d4f19e974d79928":"4b8AD","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./firebase.js":"38sjH"}],"7kRFs":[function(require,module,exports,__globalThis) {
 /*
 * loglevel - https://github.com/pimterry/loglevel
 *

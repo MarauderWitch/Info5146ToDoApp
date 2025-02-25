@@ -1,5 +1,5 @@
 import { doc, getDoc, getDocs, addDoc, updateDoc, collection, query, where } from "firebase/firestore";
-import { db } from "/firebase.js";
+import { db } from "./firebase.js";
 import log from "loglevel";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
