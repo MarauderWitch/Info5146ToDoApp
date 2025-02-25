@@ -598,7 +598,7 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 },{}],"azFBe":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _firestore = require("firebase/firestore");
-var _firebaseJs = require("../js/firebase.js"); // ✅ Ensure Firestore is properly imported
+var _firebaseJs = require("../js/firebase.js");
 var _loglevel = require("loglevel");
 var _loglevelDefault = parcelHelpers.interopDefault(_loglevel);
 var _generativeAi = require("@google/generative-ai");
@@ -614,46 +614,25 @@ if (!email) {
         window.location.href = "index.html";
     }, 1000);
 }
-// ✅ Wait for the DOM to fully load before attaching event listeners
-document.addEventListener("DOMContentLoaded", function() {
-    console.log(`DOM fully loaded, attaching event listeners...`);
-    const taskInput = document.getElementById('taskInput');
-    const addTaskBtn = document.getElementById('addTaskBtn');
-    const taskList1 = document.getElementById('taskList');
-    const aiButton = document.getElementById('send-btn');
-    const aiInput = document.getElementById('chat-input');
-    const chatHistory = document.getElementById('chat-history');
-    const signOutBttn = document.getElementById("signOutBttn");
-    if (!taskInput || !addTaskBtn || !taskList1 || !aiButton || !aiInput || !chatHistory || !signOutBttn) {
-        console.error("One or more elements not found! Check your HTML.");
-        return;
-    }
-    // ✅ Add Task Button Event Listener
-    addTaskBtn.addEventListener('click', async ()=>{
-        console.log("\u2705 Add Task button clicked!");
-        const taskText = taskInput.value.trim();
-        if (taskText) {
-            console.log(`\u{1F525} Adding task: ${taskText}`);
-            await addTaskToFirestore(taskText);
-            taskInput.value = ""; // ✅ Clear input after adding task
-        } else alert("\u26A0\uFE0F Please enter a task!");
-    });
-    aiButton.addEventListener('click', async ()=>{
-        let prompt = aiInput.value.trim().toLowerCase();
-        if (prompt) console.log(`\u{1F916} Chatbot received: ${prompt}`);
-        else appendMessage("\u26A0\uFE0F Please enter a prompt");
-    });
-    signOutBttn.addEventListener("click", function() {
-        console.log("\uD83D\uDEAA User signed out.");
-        localStorage.removeItem("email");
-        window.location.href = "index.html";
-    });
-});
 // ✅ Function to sanitize input
 function sanitizeInput(input) {
     const div = document.createElement("div");
-    div.textContent = input;
+    div.textContent = input.trim();
     return div.innerHTML;
+}
+// ✅ Call API Key on Page Load
+async function getApiKey() {
+    try {
+        let snapshot = await (0, _firestore.getDoc)((0, _firestore.doc)((0, _firebaseJs.db), "apikey", "googlegenai"));
+        let apiKey = snapshot.data().key;
+        let genAI = new (0, _generativeAi.GoogleGenerativeAI)(apiKey);
+        let model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash"
+        });
+        console.log("\u2705 API Key retrieved successfully");
+    } catch (error) {
+        console.error("\u274C Error retrieving API Key:", error);
+    }
 }
 // ✅ Add Task to Firestore
 async function addTaskToFirestore(taskText) {
@@ -662,14 +641,15 @@ async function addTaskToFirestore(taskText) {
         return;
     }
     try {
-        console.log(`\u{1F525} Saving task: ${taskText} for user: ${email}`);
+        let sanitizedText = sanitizeInput(taskText);
+        console.log(`\u{1F525} Saving task: ${sanitizedText} for user: ${email}`);
         const docRef = await (0, _firestore.addDoc)((0, _firestore.collection)((0, _firebaseJs.db), "todos"), {
-            text: taskText,
+            text: sanitizedText,
             email: email,
             completed: false
         });
         console.log(`\u{2705} Task saved successfully with ID: ${docRef.id}`);
-        await renderTasks(); // ✅ Refresh the task list after adding
+        await renderTasks();
     } catch (error) {
         console.error("\u274C Error adding task:", error);
     }
@@ -683,18 +663,35 @@ async function getTasksFromFirestore() {
     try {
         console.log(`\u{1F50D} Fetching tasks for email: ${email}`);
         let q = (0, _firestore.query)((0, _firestore.collection)((0, _firebaseJs.db), "todos"), (0, _firestore.where)("email", "==", email));
-        const querySnapshot = await (0, _firestore.getDocs)(q);
-        return querySnapshot; // ✅ Returns tasks properly
+        return await (0, _firestore.getDocs)(q);
     } catch (error) {
         console.error("\u274C Error fetching tasks:", error);
         return [];
     }
 }
-// ✅ Render Tasks in UI
+// ✅ Mark Task as Completed
+async function markTaskAsCompleted(taskId) {
+    try {
+        console.log(`\u{2705} Marking task as completed: ${taskId}`);
+        await (0, _firestore.updateDoc)((0, _firestore.doc)((0, _firebaseJs.db), "todos", taskId), {
+            completed: true
+        });
+        console.log(`\u{2705} Task ${taskId} marked as completed.`);
+        await renderTasks(); // Refresh task list after marking as complete
+    } catch (error) {
+        console.error("\u274C Error updating task:", error);
+    }
+}
+// ✅ Render Tasks in UI with Click-to-Complete
 async function renderTasks() {
     console.log(`\u{1F504} Fetching tasks from Firestore...`);
     const querySnapshot = await getTasksFromFirestore();
-    taskList.innerHTML = ""; // ✅ Clear existing tasks before rendering
+    const taskList = document.getElementById("taskList");
+    if (!taskList) {
+        console.error("\u274C Task list element not found!");
+        return;
+    }
+    taskList.innerHTML = "";
     querySnapshot.forEach((doc)=>{
         const taskData = doc.data();
         console.log(`\u{1F4DD} Rendering task: ${doc.id} - ${taskData.text}`);
@@ -702,26 +699,94 @@ async function renderTasks() {
             const taskItem = document.createElement("li");
             taskItem.id = doc.id;
             taskItem.textContent = taskData.text;
-            taskItem.tabIndex = 0; // ✅ Make tasks keyboard navigable
+            taskItem.tabIndex = 0;
+            // ✅ Add click event listener to mark task as completed
+            taskItem.addEventListener("click", async ()=>{
+                await markTaskAsCompleted(doc.id);
+            });
+            taskItem.addEventListener("keypress", async (event)=>{
+                if (event.key === "Enter") await markTaskAsCompleted(doc.id);
+            });
             taskList.appendChild(taskItem);
         }
     });
     console.log(`\u{2705} Rendered ${querySnapshot.size} tasks.`);
 }
-// ✅ Load tasks when page is loaded
-window.addEventListener('load', renderTasks);
-// ✅ Mark Task as Completed on Enter Key Press
-taskList.addEventListener("keypress", async function(e) {
-    if (e.target.tagName === 'LI' && e.key === "Enter") try {
-        (0, _loglevelDefault.default).info(`\u{2705} Marking task as completed: ${e.target.id}`);
-        await (0, _firestore.updateDoc)((0, _firestore.doc)((0, _firebaseJs.db), "todos", e.target.id), {
-            completed: true
-        });
-        (0, _loglevelDefault.default).info(`\u{2705} Task ${e.target.id} marked as completed`);
-        renderTasks();
-    } catch (error) {
-        (0, _loglevelDefault.default).error("\u274C Error updating task:", error);
+function appendMessage(message) {
+    let history = document.createElement("div");
+    history.textContent = message;
+    history.className = 'history';
+    chatHistory.appendChild(history);
+    aiInput.value = "";
+}
+function removeFromTaskName(task) {
+    let ele = document.getElementsByName(task);
+    if (ele.length == 0) return false;
+    ele.forEach((e)=>{
+        removeTask(e.id);
+        removeVisualTask(e.id);
+    });
+    return true;
+}
+function ruleChatBot(request) {
+    if (request.startsWith("add task")) {
+        let task = request.replace("add task", "").trim();
+        if (task) {
+            addTaskToFirestore(task);
+            appendMessage('Task ' + task + ' added!');
+        } else appendMessage("Please specify a task to add.");
+        return true;
+    } else if (request.startsWith("complete")) {
+        let taskName = request.replace("complete", "").trim();
+        if (taskName) {
+            if (removeFromTaskName(taskName)) appendMessage('Task ' + taskName + ' marked as complete.');
+            else appendMessage("Task not found!");
+        } else appendMessage("Please specify a task to complete.");
+        return true;
     }
+    return false;
+}
+// ✅ Wait for the DOM to fully load before attaching event listeners
+document.addEventListener("DOMContentLoaded", function() {
+    console.log(`DOM fully loaded, attaching event listeners...`);
+    const taskInput = document.getElementById('taskInput');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const aiButton = document.getElementById('send-btn');
+    const aiInput1 = document.getElementById('chat-input');
+    const chatHistory1 = document.getElementById('chat-history');
+    const signOutBttn = document.getElementById("signOutBttn");
+    if (!taskInput || !addTaskBtn || !aiButton || !aiInput1 || !chatHistory1 || !signOutBttn) {
+        console.error("One or more elements not found! Check your HTML.");
+        return;
+    }
+    // ✅ Add Task Button Event Listener
+    addTaskBtn.addEventListener('click', async ()=>{
+        console.log("\u2705 Add Task button clicked!");
+        const taskText = taskInput.value.trim();
+        if (taskText) {
+            console.log(`\u{1F525} Adding task: ${taskText}`);
+            await addTaskToFirestore(taskText);
+            taskInput.value = "";
+        } else alert("\u26A0\uFE0F Please enter a task!");
+    });
+    taskInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") addTaskBtn.click();
+    });
+    aiButton.addEventListener('click', async ()=>{
+        let prompt = aiInput1.value.trim().toLowerCase();
+        if (prompt) {
+            if (!ruleChatBot(prompt)) askChatBot(prompt);
+        } else appendMessage("Please enter a prompt");
+    });
+    signOutBttn.addEventListener("click", function() {
+        console.log("\uD83D\uDEAA User signed out.");
+        localStorage.removeItem("email");
+        window.location.href = "index.html";
+    });
+    // ✅ Load tasks when page is loaded
+    renderTasks();
+    // ✅ Retrieve API key on page load
+    getApiKey();
 });
 // ✅ Service Worker Registration
 const sw = new URL(require("6d4f19e974d79928"));
